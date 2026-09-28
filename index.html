@@ -775,14 +775,16 @@
                 <a class="button" href="https://github.com/rakibnasif" target="_blank" rel="noopener">GitHub</a>
             </div>
 
-            <!-- This form opens the visitor's email app. To get messages without an email app,
-           use Formspree: add action="https://formspree.io/f/YOUR_ID" method="POST"
-           to the form and delete the "contact form" part in the JavaScript. -->
             <form class="contact-form" id="contact-form">
+                <input type="hidden" name="access_key" value="7b654dd1-b6ca-44a6-8385-2e35e9278e64">
+                <input type="hidden" name="subject" value="New message from your portfolio">
+                <input type="hidden" name="from_name" value="Portfolio Contact Form">
+                <input type="checkbox" name="botcheck" style="display:none" tabindex="-1" autocomplete="off">
+
                 <input name="name" placeholder="Your name" required aria-label="Your name">
                 <input name="email" type="email" placeholder="Your email" required aria-label="Your email">
                 <textarea name="message" rows="4" placeholder="Message" required aria-label="Message"></textarea>
-                <button class="button button-main" type="submit">Send message</button>
+                <button class="button button-main" type="submit" id="send-button">Send message</button>
             </form>
         </section>
     </main>
@@ -1029,14 +1031,35 @@
             }
         });
 
-        /* ---------- Contact form (opens the email app) ---------- */
-        getEl("#contact-form").addEventListener("submit", function (event) {
+        /* ---------- Contact form (sends message to my inbox) ---------- */
+        getEl("#contact-form").addEventListener("submit", async function (event) {
             event.preventDefault();
-            const data = new FormData(event.target);
-            const subject = "Portfolio message from " + data.get("name");
-            const body = data.get("message") + "\n\nFrom: " + data.get("email");
-            window.location.href = "mailto:rakibnasif@gmail.com?subject=" +
-                encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+
+            const form = event.target;
+            const button = getEl("#send-button");
+            button.disabled = true;
+            button.textContent = "Sending...";
+
+            try {
+                const response = await fetch("https://api.web3forms.com/submit", {
+                    method: "POST",
+                    headers: { "Accept": "application/json" },
+                    body: new FormData(form)
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast("Message sent! Thank you.");
+                    form.reset();
+                } else {
+                    showToast("Something went wrong. Try again.");
+                }
+            } catch (error) {
+                showToast("Network error. Try again.");
+            }
+
+            button.disabled = false;
+            button.textContent = "Send message";
         });
     </script>
 </body>
