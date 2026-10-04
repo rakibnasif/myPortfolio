@@ -181,10 +181,101 @@
             cursor: pointer;
         }
 
-        /* On small screens hide the text links (keep the theme button) */
+        /* ---------- Hamburger button (mobile only) ----------
+           Built from 3 little bars (span tags) so we can animate
+           each one into an "X" shape with plain CSS transitions. */
+        #menu-button {
+            display: none;
+            /* shown only on small screens, see the @media rule below */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            width: 38px;
+            height: 38px;
+            background: none;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        #menu-button .bar {
+            width: 18px;
+            height: 2px;
+            background: var(--text);
+            border-radius: 2px;
+            transition: transform 0.3s ease, opacity 0.2s ease;
+        }
+
+        /* When the button gets the "open" class, turn the 3 bars into an X */
+        #menu-button.open .bar:nth-child(1) {
+            transform: translateY(7px) rotate(45deg);
+        }
+
+        #menu-button.open .bar:nth-child(2) {
+            opacity: 0;
+            /* middle bar fades out */
+        }
+
+        #menu-button.open .bar:nth-child(3) {
+            transform: translateY(-7px) rotate(-45deg);
+        }
+
+        /* ---------- Mobile dropdown panel ----------
+           #mobile-menu-wrapper animates its height from 0fr to 1fr
+           using the CSS grid trick, which is smooth without any
+           JavaScript having to measure pixel heights. */
+        #mobile-menu-wrapper {
+            display: none;
+            /* becomes a grid only on mobile, see @media rule below */
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.35s ease;
+            border-bottom: 1px solid var(--line);
+        }
+
+        #mobile-menu-wrapper.open {
+            grid-template-rows: 1fr;
+        }
+
+        /* This inner box must be allowed to shrink to 0 height and
+           must hide its overflow for the grid-rows animation to work */
+        #mobile-menu {
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        #mobile-menu .inner {
+            display: flex;
+            flex-direction: column;
+            padding: 6px 24px 20px;
+        }
+
+        #mobile-menu a {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--line);
+            color: var(--text);
+        }
+
+        #mobile-menu a:last-of-type {
+            border-bottom: none;
+        }
+
+        /* On small screens hide the text links and show the hamburger instead */
         @media (max-width: 640px) {
             .nav-links a {
                 display: none;
+            }
+
+            #theme-button {
+                display: none;
+            }
+
+            #menu-button {
+                display: flex;
+            }
+
+            #mobile-menu-wrapper {
+                display: grid;
             }
 
             h1 {
@@ -648,6 +739,26 @@
                 <a href="#contact">Contact</a>
                 <button id="theme-button" aria-label="Switch light or dark theme">◐</button>
             </div>
+            <!-- Hamburger: only visible on mobile (see the @media rule in the CSS) -->
+            <button id="menu-button" aria-label="Open menu" aria-expanded="false">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </button>
+        </div>
+        <!-- Dropdown panel for mobile. The outer "wrapper" animates its height,
+             the inner "#mobile-menu" clips the content while that happens. -->
+        <div id="mobile-menu-wrapper">
+            <div id="mobile-menu">
+                <div class="inner">
+                    <a href="#about">About</a>
+                    <a href="#skills">Skills</a>
+                    <a href="#projects">Projects</a>
+                    <a href="#resume">Resume</a>
+                    <a href="#contact">Contact</a>
+                    <button class="button" id="mobile-theme-button" style="margin-top: 10px">Switch theme</button>
+                </div>
+            </div>
         </div>
     </nav>
 
@@ -965,13 +1076,38 @@
         }
         document.documentElement.dataset.theme = theme;
 
-        getEl("#theme-button").addEventListener("click", function () {
+        function toggleTheme() {
             theme = theme === "dark" ? "light" : "dark";
             document.documentElement.dataset.theme = theme;
             try {
                 localStorage.setItem("theme", theme);
             } catch (error) { }
+        }
+
+        getEl("#theme-button").addEventListener("click", toggleTheme);
+        getEl("#mobile-theme-button").addEventListener("click", toggleTheme);
+
+        /* ---------- Mobile hamburger menu ---------- */
+        const menuButton = getEl("#menu-button");
+        const mobileMenuWrapper = getEl("#mobile-menu-wrapper");
+
+        function closeMobileMenu() {
+            menuButton.classList.remove("open");
+            mobileMenuWrapper.classList.remove("open");
+            menuButton.setAttribute("aria-expanded", "false");
+        }
+
+        menuButton.addEventListener("click", function () {
+            // toggle both the bars (into an X) and the dropdown panel together
+            const isOpen = menuButton.classList.toggle("open");
+            mobileMenuWrapper.classList.toggle("open", isOpen);
+            menuButton.setAttribute("aria-expanded", String(isOpen));
         });
+
+        // Tapping a link inside the panel closes it (and turns the X back into bars)
+        for (const link of mobileMenuWrapper.querySelectorAll("a")) {
+            link.addEventListener("click", closeMobileMenu);
+        }
 
         /* ---------- Changing text in the hero ---------- */
         const roles = ["Full-Stack Learner", "Frontend Developer", "Learning Backend", "AI/ML curious"];
