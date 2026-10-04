@@ -231,6 +231,15 @@
             grid-template-rows: 0fr;
             transition: grid-template-rows 0.35s ease;
             border-bottom: 1px solid var(--line);
+            /* Sit ON TOP of the page instead of pushing it down. Before this,
+               opening the menu made the navbar taller, which shifted every
+               section below it and threw off the "scroll to section" links. */
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            width: 100%;
+            background: var(--bg);
         }
 
         #mobile-menu-wrapper.open {
