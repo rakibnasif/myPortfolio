@@ -125,16 +125,63 @@
             z-index: 100;
         }
 
-        /* Glass navbar: see-through + blurred background */
+        /* ---------- Preloader ----------
+           A full-screen cover shown while the page loads. JavaScript adds
+           the "hide" class once everything is ready, which fades it out. */
+        #preloader {
+            position: fixed;
+            inset: 0;
+            z-index: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
+        }
+
+        #preloader.hide {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .preloader-logo {
+            font-weight: 700;
+            font-size: 44px;
+            letter-spacing: -1px;
+        }
+
+        .preloader-logo span {
+            display: inline-block;
+            color: var(--accent);
+            animation: logo-pulse 1.1s ease-in-out infinite;
+        }
+
+        @keyframes logo-pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.35;
+                transform: scale(1.2);
+            }
+        }
+
+        /* Navbar wrapper. On mobile this is a plain full-width glass bar
+           (see the max-width media query). On desktop it becomes an
+           invisible strip that just centers a floating pill
+           (see the min-width media query further down). */
         .navbar {
             position: sticky;
             /* stays at the top while scrolling */
             top: 0;
             z-index: 50;
-            background: color-mix(in srgb, var(--bg) 45%, transparent);
-            -webkit-backdrop-filter: blur(14px) saturate(140%);
-            backdrop-filter: blur(14px) saturate(140%);
-            border-bottom: 1px solid color-mix(in srgb, var(--accent) 18%, var(--line));
         }
 
         .navbar .container {
@@ -271,6 +318,13 @@
 
         /* On small screens hide the text links and show the hamburger instead */
         @media (max-width: 640px) {
+            .navbar {
+                background: color-mix(in srgb, var(--bg) 45%, transparent);
+                -webkit-backdrop-filter: blur(14px) saturate(140%);
+                backdrop-filter: blur(14px) saturate(140%);
+                border-bottom: 1px solid color-mix(in srgb, var(--accent) 18%, var(--line));
+            }
+
             .nav-links a {
                 display: none;
             }
@@ -297,6 +351,65 @@
 
             h2 {
                 font-size: 32px;
+            }
+        }
+
+        /* ---------- Desktop navbar: a floating "pill" ----------
+           Reference: a rounded capsule, logo on the left, nav links
+           in the middle, floating with a small gap from the top. */
+        @media (min-width: 641px) {
+            .navbar {
+                padding: 14px 24px 0;
+                /* this transparent strip just centers the pill below */
+            }
+
+            .navbar .container {
+                max-width: fit-content;
+                margin: 0 auto;
+                height: auto;
+                gap: 14px;
+                padding: 6px 16px 6px 32px;
+                border-radius: 999px;
+                background: color-mix(in srgb, var(--card) 75%, transparent);
+                border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
+                box-shadow:
+                    0 10px 30px rgba(0, 0, 0, 0.25),
+                    0 0 0 1px color-mix(in srgb, var(--accent) 8%, transparent);
+                -webkit-backdrop-filter: blur(16px) saturate(160%);
+                backdrop-filter: blur(16px) saturate(160%);
+            }
+
+            .navbar .logo {
+                margin-right: 32px;
+            }
+
+            .navbar .nav-links {
+                gap: 4px;
+                padding: 4px;
+                border-radius: 999px;
+                background: color-mix(in srgb, var(--bg) 35%, transparent);
+            }
+
+            .navbar .nav-links a {
+                padding: 7px 28px;
+                border-radius: 999px;
+                transition: background 0.25s ease, color 0.25s ease;
+            }
+
+            /* Pill highlight on hover / current section, instead of the
+               underline used on mobile */
+            .navbar .nav-links a:hover {
+                background: color-mix(in srgb, var(--accent) 14%, transparent);
+            }
+
+            .navbar .nav-links a.active {
+                background: var(--accent);
+                color: var(--on-accent);
+            }
+
+            #theme-button {
+                margin-left: 6px;
+                border-radius: 50%;
             }
         }
 
@@ -734,6 +847,11 @@
 </head>
 
 <body>
+    <!-- Shown until the page has fully loaded, then faded out by JavaScript -->
+    <div id="preloader">
+        <div class="preloader-logo">RA<span>~</span></div>
+    </div>
+
     <div id="progress-bar"></div>
 
     <!-- ============ NAVBAR ============ -->
@@ -933,6 +1051,16 @@
     <div id="toast">Copied!</div>
 
     <script>
+        /* ---------- Preloader ----------
+           Wait for everything (images, fonts, etc.) to load, then fade
+           the cover out. The small setTimeout makes sure the logo
+           animation is visible for a beat even on a very fast connection. */
+        window.addEventListener("load", function () {
+            setTimeout(function () {
+                document.getElementById("preloader").classList.add("hide");
+            }, 500);
+        });
+
         /* ==========================================
            PROJECTS LIST
            To add a new project, copy one { ... } block and change the values.
