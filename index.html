@@ -135,6 +135,7 @@
             background: var(--accent);
             box-shadow: 0 0 10px var(--accent);
             z-index: 100;
+            transition: width 0.15s linear;
         }
 
         /* ---------- Preloader ----------
@@ -455,9 +456,12 @@
            invisible strip that just centers a floating pill
            (see the min-width media query further down). */
         .navbar {
-            position: sticky;
-            /* stays at the top while scrolling */
+            position: fixed;
+            /* stays pinned to the top of the screen while scrolling */
             top: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
             z-index: 50;
         }
 
@@ -661,27 +665,54 @@
             }
 
             .navbar .nav-links {
+                position: relative;
                 gap: 4px;
                 padding: 4px;
                 border-radius: 999px;
                 background: color-mix(in srgb, var(--bg) 35%, transparent);
             }
 
-            .navbar .nav-links a {
-                padding: 7px 28px;
+            /* The sliding green highlight. JavaScript moves this to sit
+               behind whichever link is active, instead of toggling each
+               link's own background (which used to snap instantly). */
+            .nav-pill {
+                position: absolute;
+                top: 4px;
+                left: 4px;
+                height: calc(100% - 8px);
+                width: 0;
                 border-radius: 999px;
-                transition: background 0.25s ease, color 0.25s ease;
+                background: var(--accent);
+                box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 35%, transparent);
+                transition: transform 0.6s cubic-bezier(0.65, 0, 0.35, 1), width 0.6s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.2s ease;
+                opacity: 0;
+                pointer-events: none;
+                z-index: 0;
             }
 
-            /* Pill highlight on hover / current section, instead of the
-               underline used on mobile */
+            .nav-pill.visible {
+                opacity: 1;
+            }
+
+            .navbar .nav-links a {
+                position: relative;
+                z-index: 1;
+                padding: 7px 28px;
+                border-radius: 999px;
+                transition: color 0.25s ease;
+            }
+
+            /* Hover still gets a soft tint; the active state is the pill */
             .navbar .nav-links a:hover {
                 background: color-mix(in srgb, var(--accent) 14%, transparent);
             }
 
             .navbar .nav-links a.active {
-                background: var(--accent);
                 color: var(--on-accent);
+            }
+
+            .navbar .nav-links a.active:hover {
+                background: none;
             }
 
             #theme-button {
@@ -1141,6 +1172,7 @@
         <div class="container">
             <a class="logo" href="#top">RA<span>~</span></a>
             <div class="nav-links">
+                <span class="nav-pill" id="nav-pill"></span>
                 <a href="#about">About</a>
                 <a href="#skills">Skills</a>
                 <a href="#projects">Projects</a>
@@ -1398,6 +1430,16 @@
                 repoUrl: "https://github.com/rakibnasif/RockPaperScissorsG",
                 emoji: "✊",
                 year: 2026
+            },
+            {
+                title: "Chor Police Babu Dakat",
+                description: "A browser version of the classic Bengali guessing game, with roles and scoring handled automatically.",
+                tags: ["HTML", "CSS", "JavaScript"],
+                category: "Game",
+                liveUrl: "https://rakibnasif.github.io/ChorPoliceBabuDakat/",
+                repoUrl: "https://github.com/rakibnasif/ChorPoliceBabuDakat",
+                emoji: "🕵️",
+                year: 2026
             }
         ];
 
@@ -1574,6 +1616,7 @@
             link.addEventListener("click", function (event) {
                 event.preventDefault();
                 const target = getEl(link.getAttribute("href"));
+                forcedId = link.getAttribute("href").slice(1);
                 if (target) target.scrollIntoView({ behavior: "smooth" });
             });
         }
@@ -1581,6 +1624,19 @@
         /* ---------- Scroll progress bar + highlight current section ---------- */
         const sections = document.querySelectorAll("main section");
         const navLinks = document.querySelectorAll(".nav-links a");
+        const navPill = getEl("#nav-pill");
+        let currentActiveId = "";
+        let forcedId = "";
+
+        // Slides the green pill to sit exactly behind the given link.
+        // Reading offsetLeft/offsetWidth and writing a transform (instead of
+        // animating left/width directly) is what makes the glide smooth.
+        function movePillTo(link) {
+            if (!navPill || !link) return;
+            navPill.style.width = link.offsetWidth + "px";
+            navPill.style.transform = "translateX(" + link.offsetLeft + "px)";
+            navPill.classList.add("visible");
+        }
 
         window.addEventListener("scroll", function () {
             // Progress bar: how far we have scrolled, in percent
@@ -1595,9 +1651,42 @@
                     current = section.id;
                 }
             }
-            for (const link of navLinks) {
-                link.classList.toggle("active", link.getAttribute("href") === "#" + current);
+
+            // Page-er ekdom shesh-e pouchle shesh section (Contact) active hobe
+            const atBottom = page.scrollTop + page.clientHeight >= page.scrollHeight - 4;
+            if (atBottom) {
+                current = sections[sections.length - 1].id;
             }
+
+            // Nav link click korle, majher section gulo skip kore sorasori target-e jabe
+            if (forcedId) current = forcedId;
+
+            if (current !== currentActiveId) {
+                currentActiveId = current;
+                let activeLink = null;
+                for (const link of navLinks) {
+                    const isActive = link.getAttribute("href") === "#" + current;
+                    link.classList.toggle("active", isActive);
+                    if (isActive) activeLink = link;
+                }
+                if (activeLink) {
+                    movePillTo(activeLink);
+                } else if (navPill) {
+                    navPill.classList.remove("visible");
+                }
+            }
+        });
+
+        // Scroll thamle ba user nije scroll korle normal mode-e fire jao
+        window.addEventListener("scrollend", function () { forcedId = ""; });
+        ["wheel", "touchstart", "keydown"].forEach(function (name) {
+            window.addEventListener(name, function () { forcedId = ""; }, { passive: true });
+        });
+
+        // Keep the pill lined up if the window is resized (link widths change)
+        window.addEventListener("resize", function () {
+            const activeLink = getEl(".nav-links a.active");
+            if (activeLink) movePillTo(activeLink);
         });
 
         /* ---------- "Copied!" message and copy-email button ---------- */
